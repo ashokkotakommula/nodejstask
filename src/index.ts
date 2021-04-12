@@ -26,7 +26,7 @@ const sampleData = {
 //given access token
 const accessToken = "03aa7ba718da920e0ea362c876505c6df32197940669c5b150711b03650a78cf";
 
-//check result
+//check result *kyc
 const keyResults = (value: String) => {
     if(value === "Y") {
         return {
