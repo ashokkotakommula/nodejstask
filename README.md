@@ -1,6 +1,6 @@
 # nodejstask
 
-###This project consists of src folder, src folder consits of main index.ts file.
+## This project consists of src folder, src folder consits of main index.ts file.
 In src also conists of validations folder.
 In validations folder consists of validate file. this file consists of input validation such as first name, last name, dob, and state.
 
