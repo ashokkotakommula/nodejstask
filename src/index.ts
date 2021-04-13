@@ -10,53 +10,70 @@ const PORT = 8000;
 const kycResults = (value: String) => {
     if(value === "Y") {
         return {
-            "kycResult": true
-        }      
+           details: {
+            "result": "Success",
+            "kycResult": "true"
+           }
+        }     
     } else if(value === "N") {
         return {
-            "kycResult": false
+            details: {
+                "result": "Success",
+                "kycResult": "false"
+            }
         }            
     } else if(value === "D" || "S") {
         return {
-            code: `"D" or "S"`,
-            message: `"Document Error" or "Server Error"`
+            details: {
+                "result": "Success",
+                "code": `"D" or "S"`,
+                "message": `"Document Error" or "Server Error"`
+            }
         }
     }
 }
 
 const server = http.createServer((req, res) => {
+    //check route and make post request
    if(req.url === "/checkkyc" && req.method === "POST") {
     let body = '';
+    //
     req.on('data', buffer => {
         body += buffer.toString() // convert Buffer to string
+        
         //validations
-        doBvalidations(JSON.parse(buffer.toLocaleString()).birthDate);
-        validateExpiryNames(JSON.parse(buffer.toLocaleString()).givenName, JSON.parse(buffer.toLocaleString()).familyName, JSON.parse(buffer.toLocaleString()).licenceNumber)
-        validateStateoFIssue(JSON.parse(buffer.toLocaleString()).stateOfIssue)   
+        if( doBvalidations(JSON.parse(buffer.toLocaleString()).birthDate)) {
+            res.end(doBvalidations(JSON.parse(buffer.toLocaleString()).birthDate))
+        }
+        if( validateExpiryNames(JSON.parse(buffer.toLocaleString()).givenName, JSON.parse(buffer.toLocaleString()).familyName, JSON.parse(buffer.toLocaleString()).licenceNumber)) {
+            res.end(validateExpiryNames(JSON.parse(buffer.toLocaleString()).givenName, JSON.parse(buffer.toLocaleString()).familyName, JSON.parse(buffer.toLocaleString()).licenceNumber))
+        }
+        if( validateStateoFIssue(JSON.parse(buffer.toLocaleString()).stateOfIssue)) {
+            res.end(validateStateoFIssue(JSON.parse(buffer.toLocaleString()).stateOfIssue))
+        }
+
     });
 
     req.on('end', async () => {
         const sampleDatafromBody = body;
-        const accessToken = req.headers.authorization;
-        const contentType = req.headers["content-type"];
+        
         await axios({
             method: 'post',
             url: 'https://australia-southeast1-reporting-290bc.cloudfunctions.net/driverlicence',
-            data: sampleDatafromBody, 
+            data: sampleDatafromBody,  
             headers: {
-                "Authorization": `${accessToken}`,
-                "Content-Type": `${contentType}`
+                "Authorization": "Bearer 03aa7ba718da920e0ea362c876505c6df32197940669c5b150711b03650a78cf",
+                "Content-Type": "application/json"
             }
         })
         .then(response => {
             //console.log(res.data)
-            
-            console.log(kycResults(response.data.verificationResultCode))
-            res.statusCode = 200;
-            res.end(JSON.stringify(response.data))
+            let resText = kycResults(response.data.verificationResultCode)
+            const det = resText?.details;
+           res.end(JSON.stringify(det))
         })
         .catch(err => {
-            console.log(err.message)
+            console.log("error:", err.message)
         })
       
     });
