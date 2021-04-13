@@ -2,7 +2,7 @@
 
 This project consists of src folder, src folder consits of main index.ts file.
 In src also conists of validations folder.
-In validations folder consists of validate file. this file consists of input validation such as first name, last name, dob, and state.
+In validations folder consists of validate file. this file consists of input validation such as first name, last name, dob, and state. In this project used typeScript language and axios.
 
 ### Steps to run project
 1. download project and open in code editor.
