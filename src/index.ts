@@ -1,33 +1,13 @@
 //import axios and validations
 import axios from "axios";
+import http from "http"
 import {  doBvalidations, validateExpiryNames, validateStateoFIssue } from './validations/validate'
 
-interface userData {
-    birthDate : String,
-    givenName : String,
-    middleName? : String,
-    familyName : String,
-    licenceNumber : String,
-    stateOfIssue :String,
-    expiryDate? : String
-}
+//localhost
+const PORT = 8000;
 
-//sample data
-const sampleData = {
-    "birthDate" : "1985-02-08",
-    "givenName" : "James",
-    "middleName" : "Robert",
-    "familyName" : "Smith",
-    "licenceNumber" : "949000",
-    "stateOfIssue" : "NSW",
-    "expiryDate" : "2020-01-01"
-}
-
-//given access token
-const accessToken = "03aa7ba718da920e0ea362c876505c6df32197940669c5b150711b03650a78cf";
-
-//check result
-const keyResults = (value: String) => {
+//check kyc results
+const kycResults = (value: String) => {
     if(value === "Y") {
         return {
             "kycResult": true
@@ -44,25 +24,48 @@ const keyResults = (value: String) => {
     }
 }
 
-//check kyc
-const checkKyc = async (infor: userData) => {
-    doBvalidations(infor.birthDate)
-    validateExpiryNames(infor.givenName, infor.familyName, infor.licenceNumber)
-    validateStateoFIssue(infor.stateOfIssue)
-    await axios({
-        method: 'post',
-        url: 'https://australia-southeast1-reporting-290bc.cloudfunctions.net/driverlicence',
-        data: infor,
-        headers: {
-            "Authorization": `Bearer ${accessToken}`,
-            "Content-Type":" application/json"
-        }
-    })
-    .then((res) =>{ 
-        // console.log(res.data)
-        console.log(keyResults(res.data.verificationResultCode))
-    })
-    .catch((err) => console.log(err.message))
-}
+const server = http.createServer((req, res) => {
+   if(req.url === "/checkkyc" && req.method === "POST") {
+    let body = '';
+    req.on('data', buffer => {
+        body += buffer.toString() // convert Buffer to string
+        //validations
+        doBvalidations(JSON.parse(buffer.toLocaleString()).birthDate);
+        validateExpiryNames(JSON.parse(buffer.toLocaleString()).givenName, JSON.parse(buffer.toLocaleString()).familyName, JSON.parse(buffer.toLocaleString()).licenceNumber)
+        validateStateoFIssue(JSON.parse(buffer.toLocaleString()).stateOfIssue)   
+    });
 
-checkKyc(sampleData)
+    req.on('end', async () => {
+        const sampleDatafromBody = body;
+        const accessToken = req.headers.authorization;
+        const contentType = req.headers["content-type"];
+        await axios({
+            method: 'post',
+            url: 'https://australia-southeast1-reporting-290bc.cloudfunctions.net/driverlicence',
+            data: sampleDatafromBody, 
+            headers: {
+                "Authorization": `${accessToken}`,
+                "Content-Type": `${contentType}`
+            }
+        })
+        .then(response => {
+            //console.log(res.data)
+            
+            console.log(kycResults(response.data.verificationResultCode))
+            res.statusCode = 200;
+            res.end(JSON.stringify(response.data))
+        })
+        .catch(err => {
+            console.log(err.message)
+        })
+      
+    });
+   } else {
+       res.statusCode = 400;
+       res.end("bad request")
+   }
+});
+
+server.listen(PORT, () => {
+    console.log("server running on PORT", PORT);
+})
